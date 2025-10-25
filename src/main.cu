@@ -44,5 +44,18 @@ int main(){
 
     cudaDeviceSynchronize();
 
+    monteCarloKernel<<<blocks, BLOCK_SIZE>>>(d_states, d_payoffs, NUM_SIMULATIONS);
+    cudaDeviceSynchronize();
+
+    float sumPayoff = cpuReduce(d_payoffs, NUM_SIMULATIONS);
+    float avgPayoff = sumPayoff / NUM_SIMULATIONS;
+    
+    float optionPrice = avgPayoff * exp(-r * T);
+
+    std::cout << "European Call Option Price (Monte Carlo): " << optionPrice << std::endl;
+
+    cudaFree(d_states);
+    cudaFree(d_payoffs);
+
     return 0;
 }
