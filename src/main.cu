@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include "../include/monte_carlo.cuh"
+#include "../include/black_scholes.h"
 
 int main(){
     curandState *d_states;
@@ -56,6 +57,10 @@ int main(){
 
     cudaFree(d_states);
     cudaFree(d_payoffs);
+
+    float bsPrice = blackScholesCall(S0, K, r, sigma, T);
+
+    std::cout << "Black-Scholes Call Price: " << bsPrice << std::endl;
 
     return 0;
 }
