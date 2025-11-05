@@ -1,15 +1,16 @@
 #include <math.h>
 #include "../include/monte_carlo.cuh"
 
-__constant__ float d_S0, d_K, d_r, d_sigma, d_T;
+
+struct OptionParams {
+    float S0, K, r, sigma, T;
+};
+
+__constant__ OptionParams d_params;
 
 void initConstants(float S0, float K, float r, float sigma, float T){
-    cudaMemcpyToSymbol(d_S0, &S0, sizeof(float));
-    cudaMemcpyToSymbol(d_K, &K, sizeof(float));
-    cudaMemcpyToSymbol(d_r, &r, sizeof(float));
-    cudaMemcpyToSymbol(d_sigma, &sigma, sizeof(float));
-    cudaMemcpyToSymbol(d_T, &T, sizeof(float));
-
+    OptionParams params{S0, K, r, sigma, T};
+    cudaMemcpyToSymbol(d_params, &params, sizeof(OptionParams));
 }
 
 __global__ void initRNG(curandState *states, unsigned long seed, int N){
@@ -23,8 +24,8 @@ __global__ void monteCarloKernel(curandState *states, float * payoffs, int N){
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < N){
         float Z = curand_normal(&states[id]);
-        float ST = d_S0 * exp((d_r - 0.5f * d_sigma * d_sigma) * d_T + d_sigma *sqrt(d_T) * Z);
-        payoffs[id] = fmaxf(ST - d_K, 0.0f);
+        float ST = d_params.S0 * exp((d_params.r - 0.5f * d_params.sigma * d_params.sigma) * d_params.T + d_params.sigma *sqrt(d_params.T) * Z);
+        payoffs[id] = fmaxf(ST - d_params.K, 0.0f);
     }
 }
 

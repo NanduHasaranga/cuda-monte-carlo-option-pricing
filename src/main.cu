@@ -4,6 +4,16 @@
 #include "../include/monte_carlo.cuh"
 #include "../include/black_scholes.h"
 
+#define CUDA_CHECK(call) \
+do { \
+    cudaError_t err = call; \
+    if (err != cudaSuccess) { \
+        fprintf(stderr, "CUDA error %s:%d: %s\n", \
+                __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(EXIT_FAILURE); \
+    } \
+} while (0)
+
 int main(){
     curandState *d_states;
     float *d_payoffs;
@@ -35,18 +45,10 @@ int main(){
     int blocks = (NUM_SIMULATIONS + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     initRNG<<<blocks, BLOCK_SIZE>>>(d_states, 1234, NUM_SIMULATIONS);
-
-    cudaError_t err = cudaGetLastError();
-    if (cudaSuccess != err) 
-    {
-        fprintf(stderr, "CUDA error: %s.\n", cudaGetErrorString( err) );
-        exit(EXIT_FAILURE);
-    }                         
-
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     monteCarloKernel<<<blocks, BLOCK_SIZE>>>(d_states, d_payoffs, NUM_SIMULATIONS);
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     float sumPayoff = cpuReduce(d_payoffs, NUM_SIMULATIONS);
     float avgPayoff = sumPayoff / NUM_SIMULATIONS;
